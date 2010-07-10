@@ -137,7 +137,7 @@ def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
                 print "    already added " + videoId
                 continue
                 
-            print "    adding " + videoId + " to playlist " + playlistUri
+            print "    adding " + videoId
             
             title = link[u'data'][u'title'][:100]
             description = "score: " + str(link[u'data'][u'score'])
@@ -154,6 +154,9 @@ def getPlaylistContents(playlistUri):
     
     feed = yt_service.GetYouTubePlaylistVideoFeed(uri=playlistUri)
 
+    if None == feed:
+        return playlistContents
+        
     for entry in feed.entry:
         url = entry.GetHtmlLink().href
         videoId = parseVideoId(url)
