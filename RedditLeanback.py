@@ -15,14 +15,17 @@ import os
 import json
 import urllib
 import re
+import time
 from urlparse import urlparse
 
 # configuration globals
 #_______________________________________________________________________________
 devKeyFile = os.path.expanduser('~/.youtubeDevKey')
 
+#unfortunately, youtube leanback only shows up to three playlists...
 playlistDict = {'Reddit Videos': ['/r/videos'], 
                 'Reddit Happy' : ['/r/aww', '/r/funny'],
+                'Reddit Music' : ['/r/futurefunkairlines', '/r/idm', '/r/electronicmusic', '/r/dnb/', '/r/breakcore/', '/r/dubstep', '/r/darkstep', '/r/raggajungle/'],
                }
 
 # error checking 
@@ -137,7 +140,8 @@ def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
                 print "    already added " + videoId
                 continue
                 
-            print "    adding " + videoId
+            print "    adding " + videoId + " to playlist " + playlistUri
+            time.sleep(1)
             
             title = link[u'data'][u'title'][:100]
             description = "score: " + str(link[u'data'][u'score'])
