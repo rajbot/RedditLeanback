@@ -86,7 +86,7 @@ def getPlaylistUris(yt_service):
     print "______________________________"
 
     playlistFeed = yt_service.GetYouTubePlaylistFeed(uri='http://gdata.youtube.com/feeds/api/users/default/playlists')
-    print playlistFeed
+
     playlistUris = {}
     
     for playlist in playlistDict:
@@ -106,9 +106,21 @@ def getPlaylistUris(yt_service):
     print "\n"
     return playlistUris
 
-# parseSubreddit()
+
+# parseVideoId()
 #_______________________________________________________________________________
-def parseSubreddit(subreddit, yt_service, playlistUri):
+def parseVideoId(url):
+    """
+    find youtube video id, using regex from http://stackoverflow.com/questions/2597080/regex-to-parse-youtube-yid/2601838#2601838
+    I added a hash to the terminating charset in the regex to work with timestamps
+    """
+    m = re.search('(?<=v=)[a-zA-Z0-9-]+(?=&)|(?<=[0-9]/)[^&#\n]+|(?<=v=)[^&#\n]+', url)
+    return m.group(0)
+    
+
+# processSubreddit()
+#_______________________________________________________________________________
+def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
     print "  Adding videos for " + subreddit
     f = urllib.urlopen("http://www.reddit.com" + subreddit + ".json")
     c = f.read()
@@ -119,11 +131,12 @@ def parseSubreddit(subreddit, yt_service, playlistUri):
         if 'youtube.com' == link[u'data'][u'domain']:
             url = link[u'data'][u'url']
             
-            #find youtube video id, using regex from http://stackoverflow.com/questions/2597080/regex-to-parse-youtube-yid/2601838#2601838
-            #added a hash to the terminating charset in the regex..
-            m = re.search('(?<=v=)[a-zA-Z0-9-]+(?=&)|(?<=[0-9]/)[^&#\n]+|(?<=v=)[^&#\n]+', url)
-            videoId = m.group(0)
-
+            videoId = parseVideoId(url)
+            
+            if videoId in playlistContents:
+                print "    already added " + videoId
+                continue
+                
             print "    adding " + videoId + " to playlist " + playlistUri
             
             title = link[u'data'][u'title'][:100]
@@ -133,6 +146,21 @@ def parseSubreddit(subreddit, yt_service, playlistUri):
                 playlistUri, videoId, title, description)
 
     print "\n"
+    
+# getPlaylistContents()
+#_______________________________________________________________________________
+def getPlaylistContents(playlistUri):
+    playlistContents = []
+    
+    feed = yt_service.GetYouTubePlaylistVideoFeed(uri=playlistUri)
+
+    for entry in feed.entry:
+        url = entry.GetHtmlLink().href
+        videoId = parseVideoId(url)
+        playlistContents.append(videoId)    
+
+    return playlistContents
+    
     
 # addNewVideos()
 #_______________________________________________________________________________
@@ -145,8 +173,11 @@ def addNewVideos(yt_service, playlistUris):
     
     for (playlist, subreddits) in playlistDict.iteritems():
         print "Processing playlist " + playlist
+        
+        playlistContents = getPlaylistContents(playlistUris[playlist])
+        
         for subreddit in subreddits:
-            parseSubreddit(subreddit, yt_service, playlistUris[playlist])
+            processSubreddit(subreddit, yt_service, playlistUris[playlist], playlistContents)
             
 
 # __main__
