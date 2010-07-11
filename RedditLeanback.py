@@ -21,10 +21,10 @@ import time
 #_______________________________________________________________________________
 devKeyFile = os.path.expanduser('~/.youtubeDevKey')
 
-#unfortunately, youtube leanback only shows up to three playlists...
 playlistDict = {'Reddit Videos': ['/r/videos'], 
                 'Reddit Happy' : ['/r/aww', '/r/funny'],
-                'Reddit Music' : ['/r/futurefunkairlines', '/r/idm', '/r/electronicmusic', '/r/dnb/', '/r/breakcore/', '/r/dubstep', '/r/darkstep', '/r/raggajungle/'],
+                'Reddit Music' : ['/r/futurefunkairlines', '/r/idm', '/r/electronicmusic'],
+                'Reddit DnB'   : ['/r/dnb/', '/r/breakcore/', '/r/dubstep', '/r/darkstep', '/r/raggajungle/'],
                }
 
 # error checking 
@@ -182,13 +182,16 @@ def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
     
 # getPlaylistContents()
 #_______________________________________________________________________________
-def getPlaylistContents(playlistUri):
-    playlistContents = []
+def getPlaylistContents(playlistUri, playlistContents):
+    
+    print "  Getting Contents of playlist " + playlistUri
     
     feed = yt_service.GetYouTubePlaylistVideoFeed(uri=playlistUri)
 
     if None == feed:
-        return playlistContents
+        return
+
+    print "  .. got %d entries" % len(feed.entry)
         
     for entry in feed.entry:
 
@@ -200,8 +203,12 @@ def getPlaylistContents(playlistUri):
         videoId = parseVideoId(url)
         playlistContents.append(videoId)    
 
-    return playlistContents
+    next = feed.GetNextLink()
     
+    if None != next:
+        getPlaylistContents(feed.GetNextLink().href, playlistContents)
+    else:
+        print "  playlist has %d videos\n" % len(playlistContents)
     
 # addNewVideos()
 #_______________________________________________________________________________
@@ -215,7 +222,8 @@ def addNewVideos(yt_service, playlistUris):
     for (playlist, subreddits) in playlistDict.iteritems():
         print "Processing playlist " + playlist
         
-        playlistContents = getPlaylistContents(playlistUris[playlist])
+        playlistContents = []
+        getPlaylistContents(playlistUris[playlist], playlistContents)
 
         for subreddit in subreddits:
             processSubreddit(subreddit, yt_service, playlistUris[playlist], playlistContents)
