@@ -1,0 +1,7 @@
+Usage: ./RedditLeanback.py user@gmail.com password
+
+This script creates YouTube playlists of interesting videos from Reddit.
+These playlists can then be viewed on a home theater setup using Youtube Leanback.
+
+Requires the Google Data Python Library and a youtube dev key:
+http://code.google.com/apis/gdata/articles/python_client_lib.html

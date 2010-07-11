@@ -3,7 +3,10 @@
 """
 Usage: ./RedditLeanback.py user@gmail.com password
 
-Requires the Google Data Python Library:
+This script creates YouTube playlists of interesting videos from Reddit.
+These playlists can then be viewed on a home theater setup using Youtube Leanback.
+
+Requires the Google Data Python Library and a youtube dev key:
 http://code.google.com/apis/gdata/articles/python_client_lib.html
 """
 
@@ -162,10 +165,12 @@ def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
                 continue
                 
             print "    adding " + videoId + " to playlist " + playlistUri
+
             time.sleep(5)
             
             title = link[u'data'][u'title'][:100]
             description = "score: " + str(link[u'data'][u'score'])
+            print "      with title: " + title
             
             #add to playlist
             entry = yt_service.AddPlaylistVideoEntryToPlaylist(
