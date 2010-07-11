@@ -16,7 +16,6 @@ import json
 import urllib
 import re
 import time
-from urlparse import urlparse
 
 # configuration globals
 #_______________________________________________________________________________
@@ -69,8 +68,7 @@ def getUriForPlaylist(playlist, playlistFeed):
     for entry in playlistFeed.entry:
         if entry.title.text == playlist:
             
-            o = urlparse(entry.id.text)
-            playlistId = os.path.basename(o.path)
+            playlistId = os.path.basename(entry.id.text)
             playlistUri = "http://gdata.youtube.com/feeds/api/playlists/" + playlistId            
             return playlistUri
 
@@ -117,8 +115,24 @@ def parseVideoId(url):
     find youtube video id, using regex from http://stackoverflow.com/questions/2597080/regex-to-parse-youtube-yid/2601838#2601838
     I added a hash to the terminating charset in the regex to work with timestamps
     """
+
     m = re.search('(?<=v=)[a-zA-Z0-9-]+(?=&)|(?<=[0-9]/)[^&#\n]+|(?<=v=)[^&#\n]+', url)
-    return m.group(0)
+
+    #print "processing url " + url
+    #print "got video id " + m.group(0)
+    
+    
+    if None == m:
+        return None
+
+    videoId = m.group(0)
+    
+    if 11 != len(videoId):
+        print "error?! got a videoId that is not 11 chars long: " + videoId
+        print "original url: " + url
+        sys.exit()
+        
+    return videoId
     
 
 # processSubreddit()
@@ -130,25 +144,40 @@ def processSubreddit(subreddit, yt_service, playlistUri, playlistContents):
     f.close()
     links = json.loads(c)
 
-    for link in links[u'data'][u'children']:
+    vids = links[u'data'][u'children']
+    vids.reverse()
+    
+    for link in vids:
         if 'youtube.com' == link[u'data'][u'domain']:
             url = link[u'data'][u'url']
             
             videoId = parseVideoId(url)
+            
+            if None == videoId:
+                print "    couldn't parse videoId from url " + url
+                continue
             
             if videoId in playlistContents:
                 print "    already added " + videoId
                 continue
                 
             print "    adding " + videoId + " to playlist " + playlistUri
-            time.sleep(1)
+            time.sleep(5)
             
             title = link[u'data'][u'title'][:100]
             description = "score: " + str(link[u'data'][u'score'])
             
+            #add to playlist
             entry = yt_service.AddPlaylistVideoEntryToPlaylist(
                 playlistUri, videoId, title, description)
 
+            entryId = os.path.basename(entry.id.text)
+            print "    added to playlist with id: " + entryId
+            
+            #move to top of playlist
+            newEntry = yt_service.UpdatePlaylistVideoEntryMetaData(
+                playlistUri, entryId, title, description, 1)            
+            
     print "\n"
     
 # getPlaylistContents()
@@ -162,7 +191,12 @@ def getPlaylistContents(playlistUri):
         return playlistContents
         
     for entry in feed.entry:
-        url = entry.GetHtmlLink().href
+
+        htmlLink = entry.GetHtmlLink()
+        if None == htmlLink:
+            continue #suspended video
+            
+        url = htmlLink.href
         videoId = parseVideoId(url)
         playlistContents.append(videoId)    
 
@@ -182,7 +216,7 @@ def addNewVideos(yt_service, playlistUris):
         print "Processing playlist " + playlist
         
         playlistContents = getPlaylistContents(playlistUris[playlist])
-        
+
         for subreddit in subreddits:
             processSubreddit(subreddit, yt_service, playlistUris[playlist], playlistContents)
             
