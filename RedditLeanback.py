@@ -19,15 +19,19 @@ import json
 import urllib
 import re
 import time
+import getpass
+
 
 # configuration globals
 #_______________________________________________________________________________
 devKeyFile = os.path.expanduser('~/.youtubeDevKey')
 
-playlistDict = {'Reddit Videos': ['/r/videos'], 
-                'Reddit Happy' : ['/r/aww', '/r/funny'],
-                'Reddit Music' : ['/r/futurefunkairlines', '/r/idm', '/r/electronicmusic'],
-                'Reddit DnB'   : ['/r/dnb/', '/r/breakcore/', '/r/dubstep', '/r/darkstep', '/r/raggajungle/'],
+#note: only the first four of my playlists are showing up in the Leanback interface...
+playlistDict = {'Reddit Videos' : ['/r/videos'], 
+                'Reddit Happy'  : ['/r/aww', '/r/funny'],
+                'Reddit Music'  : ['/r/futurefunkairlines', '/r/idm', '/r/electronicmusic'],
+                'Reddit DnB'    : ['/r/dnb/', '/r/breakcore/', '/r/dubstep', '/r/darkstep', '/r/raggajungle/'],
+                'Reddit Lecures': ['/r/lectures', '/r/science'],
                }
 
 # error checking 
@@ -58,7 +62,19 @@ def login():
     f.close()
     yt_service.developer_key = devKey
     
-    yt_service.ProgrammaticLogin()
+    #Captcha handler by Ryan Tucker
+    #http://github.com/rtucker/gdata-captcha/blob/master/gdata-captcha.py
+    try:
+        yt_service.ProgrammaticLogin()
+    except gdata.service.CaptchaRequired:
+        captcha_token = yt_service._GetCaptchaToken()
+        url = yt_service._GetCaptchaURL()
+        print "Please go to this Captcha URL:"
+        print "  " + url
+        captcha_response = raw_input("Type the captcha image here: ")
+        yt_service.ProgrammaticLogin(captcha_token, captcha_response)
+        print "Done!"    
+    
     return yt_service
 
 # getUriForPlaylist()
